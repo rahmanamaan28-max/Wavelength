@@ -1,136 +1,376 @@
-// Game state
-const gameState = {
-    teams: [
-        {
-            name: "Team Blue",
-            score: 12,
-            players: ["Alex", "Jamie", "Taylor"],
-            activePlayer: 0
-        },
-        {
-            name: "Team Red",
-            score: 8,
-            players: ["Morgan", "Casey", "Riley"],
-            activePlayer: 0
-        }
-    ],
-    currentTeam: 0,
-    currentSpectrum: {
-        left: "HOT",
-        right: "COLD",
-        name: "Temperature Spectrum"
-    },
-    clue: "Coffee",
-    targetPosition: 0.4, // 0-1 range
-    currentGuess: 0.5,
-    timer: 90, // seconds
-    gameStarted: false
-};
+// Client-side JavaScript
+const socket = io();
 
 // DOM Elements
+const screens = {
+    home: document.getElementById('home-screen'),
+    lobby: document.getElementById('lobby-screen'),
+    game: document.getElementById('game-screen'),
+    results: document.getElementById('results-screen'),
+    gameover: document.getElementById('gameover-screen')
+};
+
+const playerNameInput = document.getElementById('player-name');
+const roomCodeInput = document.getElementById('room-code');
+const roomCodeDisplay = document.getElementById('room-code-display');
+const playerList = document.getElementById('player-list');
+const teamBlueMembers = document.getElementById('team-blue-members');
+const teamRedMembers = document.getElementById('team-red-members');
+const startGameBtn = document.getElementById('start-game');
+const joinTeamBtns = document.querySelectorAll('.join-team');
+const gameRoomCode = document.getElementById('game-room-code');
+const currentRoundDisplay = document.getElementById('current-round');
+const totalRoundsDisplay = document.getElementById('total-rounds');
+const psychicView = document.getElementById('psychic-view');
+const guesserView = document.getElementById('guesser-view');
+const spectrumLeft = document.getElementById('spectrum-left');
+const spectrumRight = document.getElementById('spectrum-right');
+const spectrumName = document.getElementById('spectrum-name');
+const targetZone = document.getElementById('target-zone');
+const clueInput = document.getElementById('clue-input');
+const submitClueBtn = document.getElementById('submit-clue');
+const clueDisplay = document.querySelector('.clue-text');
+const guesserLeft = document.getElementById('guesser-left');
+const guesserRight = document.getElementById('guesser-right');
 const dial = document.getElementById('dial');
-const clueText = document.querySelector('.clue-text');
-const spectrumRange = document.querySelector('.spectrum-range');
-const spectrumName = document.querySelector('.spectrum-name');
-const targetZone = document.querySelector('.target-zone');
-const timerDisplay = document.querySelector('.timer');
-const teamScores = document.querySelectorAll('.team-score');
-const gameStatus = document.querySelector('.game-status');
+const submitGuessBtn = document.getElementById('submit-guess');
+const timerDisplay = document.getElementById('timer');
+const currentPsychic = document.getElementById('current-psychic');
+const guessList = document.getElementById('guess-list');
+const targetRangeDisplay = document.getElementById('target-range');
+const resultsSpectrum = document.getElementById('results-spectrum');
+const resultsList = document.getElementById('results-list');
+const nextRoundBtn = document.getElementById('next-round');
+const finalScoreBlue = document.getElementById('final-score-blue');
+const finalScoreRed = document.getElementById('final-score-red');
+const winnerTeam = document.getElementById('winner-team');
+const playAgainBtn = document.getElementById('play-again');
+const backToLobbyBtn = document.getElementById('back-to-lobby');
 
-// Initialize game
-function initGame() {
-    updateSpectrumDisplay();
-    updateClueDisplay();
-    updateTargetZone();
-    updateScores();
-    updateGameStatus();
-    setupEventListeners();
+// Game state
+let playerId = null;
+let roomCode = null;
+let isHost = false;
+let currentGameState = null;
+let currentGuess = 0.5;
+
+// Join room
+document.getElementById('join-room').addEventListener('click', () => {
+    const playerName = playerNameInput.value.trim();
+    const roomCode = roomCodeInput.value.trim().toUpperCase();
+    
+    if (playerName && roomCode) {
+        socket.emit('joinRoom', { playerName, roomCode });
+    } else {
+        alert('Please enter your name and room code');
+    }
+});
+
+// Create room
+document.getElementById('create-room').addEventListener('click', () => {
+    const playerName = playerNameInput.value.trim();
+    
+    if (playerName) {
+        socket.emit('createRoom', { playerName });
+    } else {
+        alert('Please enter your name');
+    }
+});
+
+// Start game
+startGameBtn.addEventListener('click', () => {
+    if (!isHost) return;
+    
+    const rounds = document.getElementById('rounds').value;
+    const timer = document.getElementById('timer').value;
+    const gameMode = document.getElementById('game-mode').value;
+    
+    socket.emit('startGame', { rounds, timer, gameMode });
+});
+
+// Join team
+joinTeamBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const team = btn.dataset.team;
+        socket.emit('joinTeam', team);
+    });
+});
+
+// Submit clue
+submitClueBtn.addEventListener('click', () => {
+    const clue = clueInput.value.trim();
+    if (clue) {
+        socket.emit('submitClue', clue);
+    }
+});
+
+// Submit guess
+submitGuessBtn.addEventListener('click', () => {
+    socket.emit('submitGuess', currentGuess);
+});
+
+// Next round
+nextRoundBtn.addEventListener('click', () => {
+    socket.emit('nextRound');
+});
+
+// Play again
+playAgainBtn.addEventListener('click', () => {
+    socket.emit('playAgain');
+});
+
+// Back to lobby
+backToLobbyBtn.addEventListener('click', () => {
+    socket.emit('backToLobby');
+});
+
+// Setup dial interaction
+dial.addEventListener('click', (e) => {
+    const rect = dial.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+    const degrees = (angle * (180 / Math.PI) + 180) % 360;
+    
+    // Update guess position (0-1)
+    currentGuess = degrees / 360;
+    
+    // Rotate dial
+    dial.style.transform = `rotate(${degrees}deg)`;
+});
+
+// Socket event listeners
+socket.on('connect', () => {
+    playerId = socket.id;
+});
+
+socket.on('roomCreated', (data) => {
+    roomCode = data.roomCode;
+    isHost = true;
+    roomCodeDisplay.textContent = roomCode;
+    switchScreen('lobby');
+    updatePlayerList(data.players);
+});
+
+socket.on('roomJoined', (data) => {
+    roomCode = data.roomCode;
+    isHost = false;
+    roomCodeDisplay.textContent = roomCode;
+    switchScreen('lobby');
+    updatePlayerList(data.players);
+    
+    // Hide host controls if not host
+    if (!isHost) {
+        document.getElementById('host-controls').style.display = 'none';
+    }
+});
+
+socket.on('playerJoined', (players) => {
+    updatePlayerList(players);
+});
+
+socket.on('playerLeft', (players) => {
+    updatePlayerList(players);
+});
+
+socket.on('teamUpdated', (teams) => {
+    updateTeamDisplay(teams);
+});
+
+socket.on('gameStarted', (gameState) => {
+    currentGameState = gameState;
+    gameRoomCode.textContent = roomCode;
+    currentRoundDisplay.textContent = gameState.currentRound;
+    totalRoundsDisplay.textContent = gameState.totalRounds;
+    switchScreen('game');
+    updateGameScreen(gameState);
+});
+
+socket.on('updateGameState', (gameState) => {
+    currentGameState = gameState;
+    updateGameScreen(gameState);
+});
+
+socket.on('showResults', (results) => {
+    displayResults(results);
+    switchScreen('results');
+});
+
+socket.on('gameOver', (finalScores) => {
+    finalScoreBlue.textContent = finalScores.blue;
+    finalScoreRed.textContent = finalScores.red;
+    winnerTeam.textContent = finalScores.blue > finalScores.red ? 'Team Blue' : 'Team Red';
+    switchScreen('gameover');
+});
+
+socket.on('error', (message) => {
+    alert(message);
+});
+
+// Helper functions
+function switchScreen(screenName) {
+    Object.values(screens).forEach(screen => {
+        screen.classList.remove('active');
+    });
+    screens[screenName].classList.add('active');
 }
 
-// Update spectrum display
-function updateSpectrumDisplay() {
-    spectrumRange.innerHTML = `<span>${gameState.currentSpectrum.left}</span><span>${gameState.currentSpectrum.right}</span>`;
-    spectrumName.textContent = gameState.currentSpectrum.name;
+function updatePlayerList(players) {
+    playerList.innerHTML = '';
+    players.forEach(player => {
+        const playerCard = document.createElement('div');
+        playerCard.className = 'player-card';
+        playerCard.innerHTML = `
+            <div class="player-icon">${player.name.charAt(0)}</div>
+            <div class="player-name">${player.name}</div>
+            ${player.isHost ? '<div class="player-status">Host</div>' : ''}
+        `;
+        playerList.appendChild(playerCard);
+    });
 }
 
-// Update clue display
-function updateClueDisplay() {
-    clueText.textContent = gameState.clue;
+function updateTeamDisplay(teams) {
+    teamBlueMembers.innerHTML = '';
+    teamRedMembers.innerHTML = '';
+    
+    teams.blue.forEach(player => {
+        const playerEl = document.createElement('div');
+        playerEl.className = 'player';
+        playerEl.innerHTML = `
+            <div class="player-icon">${player.name.charAt(0)}</div>
+            <div class="player-name">${player.name}</div>
+        `;
+        teamBlueMembers.appendChild(playerEl);
+    });
+    
+    teams.red.forEach(player => {
+        const playerEl = document.createElement('div');
+        playerEl.className = 'player';
+        playerEl.innerHTML = `
+            <div class="player-icon">${player.name.charAt(0)}</div>
+            <div class="player-name">${player.name}</div>
+        `;
+        teamRedMembers.appendChild(playerEl);
+    });
 }
 
-// Update target zone position
-function updateTargetZone() {
-    // Target zone is 20% wide and positioned based on gameState.targetPosition
-    const position = gameState.targetPosition * 100;
-    targetZone.style.left = `${position - 10}%`;
-}
-
-// Update scores
-function updateScores() {
-    teamScores[0].textContent = gameState.teams[0].score;
-    teamScores[1].textContent = gameState.teams[1].score;
-}
-
-// Update game status
-function updateGameStatus() {
-    const teamName = gameState.teams[gameState.currentTeam].name;
-    gameStatus.textContent = `${teamName}'s turn to give a clue`;
-}
-
-// Handle dial interaction
-function setupDialInteraction() {
-    dial.addEventListener('click', (e) => {
-        const rect = dial.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
-        const degrees = (angle * (180 / Math.PI) + 180) % 360;
+function updateGameScreen(gameState) {
+    // Update scores
+    document.querySelectorAll('.team-score').forEach((el, i) => {
+        el.textContent = gameState.teams[i].score;
+    });
+    
+    // Update team members in game screen
+    const gameTeamBlue = document.getElementById('game-team-blue');
+    const gameTeamRed = document.getElementById('game-team-red');
+    
+    gameTeamBlue.innerHTML = '';
+    gameTeamRed.innerHTML = '';
+    
+    gameState.teams[0].players.forEach(player => {
+        const playerEl = document.createElement('div');
+        playerEl.className = 'player';
+        playerEl.innerHTML = `
+            <div class="player-icon">${player.name.charAt(0)}</div>
+            <div class="player-name">${player.name}</div>
+        `;
+        gameTeamBlue.appendChild(playerEl);
+    });
+    
+    gameState.teams[1].players.forEach(player => {
+        const playerEl = document.createElement('div');
+        playerEl.className = 'player';
+        playerEl.innerHTML = `
+            <div class="player-icon">${player.name.charAt(0)}</div>
+            <div class="player-name">${player.name}</div>
+        `;
+        gameTeamRed.appendChild(playerEl);
+    });
+    
+    // Update round info
+    currentRoundDisplay.textContent = gameState.currentRound;
+    
+    // Show psychic or guesser view
+    const isPsychic = gameState.currentPsychic.id === playerId;
+    psychicView.classList.toggle('active', isPsychic);
+    guesserView.classList.toggle('active', !isPsychic);
+    
+    if (isPsychic) {
+        // Psychic view
+        spectrumLeft.textContent = gameState.currentSpectrum.left;
+        spectrumRight.textContent = gameState.currentSpectrum.right;
+        spectrumName.textContent = gameState.currentSpectrum.name;
         
-        // Update guess position (0-1)
-        gameState.currentGuess = degrees / 360;
+        const targetPosition = gameState.targetPosition * 100;
+        targetZone.style.left = `${targetPosition - 10}%`;
+        targetZone.style.width = '20%';
         
-        // Rotate dial
-        dial.style.transform = `rotate(${degrees}deg)`;
+        clueInput.value = '';
+    } else {
+        // Guesser view
+        guesserLeft.textContent = gameState.currentSpectrum.left;
+        guesserRight.textContent = gameState.currentSpectrum.right;
+        
+        if (gameState.clue) {
+            clueDisplay.textContent = gameState.clue;
+        } else {
+            clueDisplay.textContent = 'Waiting for clue...';
+        }
+    }
+    
+    // Update timer
+    updateTimer(gameState.timer);
+    
+    // Update current psychic
+    currentPsychic.textContent = gameState.currentPsychic.name;
+    
+    // Update guess list
+    guessList.innerHTML = '';
+    gameState.guesses.forEach(guess => {
+        const guessEl = document.createElement('div');
+        guessEl.className = 'guess';
+        guessEl.textContent = `${guess.player.name}: ${Math.round(guess.value * 100)}%`;
+        guessList.appendChild(guessEl);
     });
 }
 
-// Setup event listeners
-function setupEventListeners() {
-    setupDialInteraction();
-    
-    // Start game button
-    document.querySelector('.btn-start').addEventListener('click', () => {
-        gameState.gameStarted = true;
-        alert('Game started! Team Blue begins.');
-    });
-    
-    // New Round button
-    document.querySelectorAll('.btn')[1].addEventListener('click', () => {
-        alert('Starting new round!');
-    });
-    
-    // Submit Blue Guess
-    document.querySelector('.btn-blue').addEventListener('click', () => {
-        alert(`Team Blue guessed: ${Math.round(gameState.currentGuess * 100)}%`);
-    });
-    
-    // Submit Red Guess
-    document.querySelector('.btn-red').addEventListener('click', () => {
-        alert(`Team Red guessed: ${Math.round(gameState.currentGuess * 100)}%`);
-    });
-    
-    // Start Timer
-    document.querySelectorAll('.btn')[4].addEventListener('click', () => {
-        alert('Timer started!');
-    });
+function updateTimer(time) {
+    const minutes = Math.floor(time / 60);
+    const seconds = time % 60;
+    timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
-// Format time for display
-function formatTime(seconds) {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-}
-
-// Initialize the game when the page loads
-window.addEventListener('DOMContentLoaded', initGame);
+function displayResults(results) {
+    // Show target range
+    targetRangeDisplay.textContent = `${results.targetPosition * 100}%`;
+    
+    // Show target zone on spectrum
+    const targetPosition = results.targetPosition * 100;
+    resultsTargetZone.style.left = `${targetPosition - 10}%`;
+    resultsTargetZone.style.width = '20%';
+    
+    // Clear existing markers
+    document.querySelectorAll('.guess-marker').forEach(marker => marker.remove());
+    
+    // Add guess markers
+    results.guesses.forEach(guess => {
+        const marker = document.createElement('div');
+        marker.className = 'guess-marker';
+        marker.style.left = `${guess.value * 100}%`;
+        marker.style.backgroundColor = guess.team === 'blue' ? '#2196F3' : '#F44336';
+        resultsSpectrum.appendChild(marker);
+    });
+    
+    // Show results list
+    resultsList.innerHTML = '';
+    results.guesses.forEach(guess => {
+        const resultEl = document.createElement('div');
+        resultEl.className = 'result';
+        resultEl.innerHTML = `
+            <div class="player">${guess.player.name}</div>
+            <div class="guess-value">${Math.round(guess.value * 100)}%</div>
+            <div class="points">+${guess.points} points</div>
+        `;
+        resultsList.appendChild(resultEl);
+    });
+        }
