@@ -9,6 +9,8 @@
     --team-red: #f44336;
     --spectrum-start: #ff5722;
     --spectrum-end: #2196f3;
+    --player-color: #9c27b0;
+    --psychic-color: #ff9800;
 }
 
 * {
@@ -26,6 +28,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    transition: all 0.3s ease;
 }
 
 .container {
@@ -50,6 +53,17 @@ h1 {
     color: transparent;
 }
 
+h2 {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    color: var(--warning);
+}
+
+h3 {
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+}
+
 .subtitle {
     font-size: 1.2rem;
     opacity: 0.8;
@@ -57,12 +71,19 @@ h1 {
     margin: 0 auto;
 }
 
-.game-container {
-    display: grid;
-    grid-template-columns: 1fr 2fr 1fr;
-    gap: 20px;
+.screen {
+    display: none;
     width: 100%;
-    margin-bottom: 30px;
+}
+
+.screen.active {
+    display: block;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .panel {
@@ -72,6 +93,112 @@ h1 {
     padding: 20px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+input, select, button {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    font-size: 1rem;
+}
+
+button {
+    background: var(--primary);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+button:hover {
+    background: #7e57c2;
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+.btn-start {
+    background: var(--success);
+}
+
+.btn-blue {
+    background: var(--team-blue);
+}
+
+.btn-red {
+    background: var(--team-red);
+}
+
+.room-code {
+    font-size: 2.5rem;
+    font-weight: bold;
+    text-align: center;
+    letter-spacing: 5px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 10px;
+    margin: 20px 0;
+}
+
+.player-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.player-card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.player-card .player-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--player-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.player-card .player-name {
+    flex-grow: 1;
+}
+
+.player-card .player-status {
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+.game-container {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 20px;
+    width: 100%;
+    margin-bottom: 30px;
 }
 
 .teams-panel {
@@ -244,49 +371,13 @@ h1 {
     border-radius: 10px;
 }
 
-h2 {
-    font-size: 1.4rem;
-    margin-bottom: 15px;
-    color: var(--warning);
-}
-
-.btn {
-    background: var(--primary);
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    justify-content: center;
+.psychic-view, .guesser-view {
     width: 100%;
-    margin-bottom: 10px;
+    display: none;
 }
 
-.btn:hover {
-    background: #7e57c2;
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-.btn:active {
-    transform: translateY(0);
-}
-
-.btn-start {
-    background: var(--success);
-}
-
-.btn-blue {
-    background: var(--team-blue);
-}
-
-.btn-red {
-    background: var(--team-red);
+.psychic-view.active, .guesser-view.active {
+    display: block;
 }
 
 .spectrum-card {
@@ -294,7 +385,7 @@ h2 {
     padding: 15px;
     border-radius: 10px;
     text-align: center;
-    margin-top: 10px;
+    margin: 10px 0;
 }
 
 .spectrum-range {
@@ -309,20 +400,38 @@ h2 {
     opacity: 0.8;
 }
 
-.game-status {
-    text-align: center;
-    padding: 10px;
-    background: rgba(255, 193, 7, 0.2);
-    border-radius: 8px;
-    margin-bottom: 15px;
-    font-weight: bold;
-}
-
 .timer {
     font-size: 1.8rem;
     font-weight: bold;
     text-align: center;
     margin: 10px 0;
+}
+
+.results-container {
+    margin: 20px 0;
+}
+
+.guess-marker {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background: white;
+    transform: translateX(-50%);
+}
+
+.final-scores {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.winner-announcement {
+    text-align: center;
+    font-size: 2rem;
+    margin: 30px 0;
+    color: var(--warning);
 }
 
 /* Responsive design */
@@ -339,4 +448,4 @@ h2 {
         width: 250px;
         height: 250px;
     }
-}
+        }
