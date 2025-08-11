@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wavelength Web Edition</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-wave-square"></i> WAVELENGTH</h1>
+            <p class="subtitle">A telepathic party game where you give a clue between two extremes. Can your team guess where your mind is on the spectrum?</p>
+        </header>
+
+        <div class="game-container">
+            <!-- Teams Panel -->
+            <div class="panel teams-panel">
+                <div class="team team-blue">
+                    <div class="team-header">
+                        <i class="fas fa-water team-icon"></i>
+                        <div class="team-name">Team Blue</div>
+                        <div class="team-score">12</div>
+                    </div>
+                    <div class="team-members">
+                        <div class="player active">
+                            <div class="player-icon"><i class="fas fa-user"></i></div>
+                            <div class="player-name">Alex</div>
+                            <div class="player-status"><i class="fas fa-crown"></i></div>
+                        </div>
+                        <div class="player">
+                            <div class="player-icon"><i class="fas fa-user"></i></div>
+                            <div class="player-name">Jamie</div>
+                        </div>
+                        <div class="player">
+                            <div class="player-icon"><i class="fas fa-user"></i></div>
+                            <div class="player-name">Taylor</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="team team-red">
+                    <div class="team-header">
+                        <i class="fas fa-fire team-icon"></i>
+                        <div class="team-name">Team Red</div>
+                        <div class="team-score">8</div>
+                    </div>
+                    <div class="team-members">
+                        <div class="player">
+                            <div class="player-icon"><i class="fas fa-user"></i></div>
+                            <div class="player-name">Morgan</div>
+                        </div>
+                        <div class="player">
+                            <div class="player-icon"><i class="fas fa-user"></i></div>
+                            <div class="player-name">Casey</div>
+                        </div>
+                        <div class="player">
+                            <div class="player-icon"><i class="fas fa-user"></i></div>
+                            <div class="player-name">Riley</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Game Area -->
+            <div class="panel game-area">
+                <div class="spectrum-container">
+                    <div class="target-zone" style="left: 30%; width: 20%;"></div>
+                </div>
+                
+                <div class="dial-container">
+                    <div class="dial" id="dial">
+                        <div class="dial-pointer"></div>
+                    </div>
+                </div>
+                
+                <div class="clue-display">
+                    <div class="clue-text">Coffee</div>
+                </div>
+            </div>
+
+            <!-- Controls Panel -->
+            <div class="panel controls-panel">
+                <div class="control-section">
+                    <h2><i class="fas fa-gamepad"></i> Game Controls</h2>
+                    <button class="btn btn-start"><i class="fas fa-play"></i> Start Game</button>
+                    <button class="btn"><i class="fas fa-redo"></i> New Round</button>
+                    <button class="btn btn-blue"><i class="fas fa-check-circle"></i> Submit Blue Guess</button>
+                    <button class="btn btn-red"><i class="fas fa-check-circle"></i> Submit Red Guess</button>
+                </div>
+                
+                <div class="control-section">
+                    <h2><i class="fas fa-bullseye"></i> Current Spectrum</h2>
+                    <div class="spectrum-card">
+                        <div class="spectrum-range">
+                            <span>HOT</span>
+                            <span>COLD</span>
+                        </div>
+                        <div class="spectrum-name">Temperature Spectrum</div>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h2><i class="fas fa-clock"></i> Timer</h2>
+                    <div class="timer">01:30</div>
+                    <button class="btn"><i class="fas fa-hourglass-start"></i> Start Timer</button>
+                </div>
+                
+                <div class="game-status">
+                    <i class="fas fa-info-circle"></i> Team Blue's turn to give a clue
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
